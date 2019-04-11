@@ -2,10 +2,7 @@
 
 const request = require('request')
 const io = require('socket.io-client')
-// const Slack = require('../utils/slack')
-const Slack = require('slack-node');
-let slack = new Slack();
-slack.setWebhook(process.env.SLACK_WEBHOOK)
+const Slack = require('../utils/slack')
 
 const customerId = process.env.CUSTOMER_ID, 
     conversationId = process.env.CONVERSATION_ID,
@@ -22,9 +19,9 @@ const customerId = process.env.CUSTOMER_ID,
                     merchantId: merchantId,
                     channel: 'widget'
                 }
+            },
             }
         }
-    }
 let isReceived = false, isConnected = false
 let currentTime = new Date()
 
@@ -50,57 +47,52 @@ const options = {
 const sendMessageResponse = (error, response, body) => {
     console.log(error, response.statusCode, response.body)
     if(!error && response.statusCode === 200) {
-        console.log('\n\n\n message sent ' + currentTime + '\n\n\n');
+        console.log('\nmessage sent ' + currentTime + '\n');
     }
     setTimeout(() => {
-        console.log('\n\n\n checking message ' + currentTime + '\n\n\n');
+        console.log('\nchecking message ' + currentTime + '\n');
         if(!isReceived) {
-            console.log('\n\n\n sending alert to slack channel ' + currentTime + '\n\n\n');
-            sendServerAlert()
+            console.log('\nsending alert to slack channel ' + currentTime + '\n');
+            const alertText = 'SOCKET ALERT: Socket does not receive message!';
+            Slack.sendServerAlert(alertText)
         }
     }, 10000)
-}
-
-const sendServerAlert = () => {
-	var alertText = 'SOCKET ALERT: Socket does not receive message';
-	slack.webhook({
-		channel: process.env.SLACK_CHANNEL,
-		username: "server-bot",
-		text: alertText
-	}, function(err, response) {
-        console.log('alert is sent to slack')
-	})
 }
 
 const sendMessage = () => {
     if(!isConnected) return
 
     currentTime = new Date()
-    console.log('\n\n\n sending message ' + currentTime + '\n\n\n');
+    console.log('\nsending message ' + currentTime + '\n');
     isReceived = false
     request.post(options, sendMessageResponse)
 }
 
-socket.on('connect', () => {
-    isConnected = true
-    console.log('connected to socket')
-})
-
 let logEvent = name => (args) => {
-    console.log('socket event', name, args)
+    console.log('\nsocket event', name, args)
 }
 
-socket.on('reconnect', logEvent('reconnect'))
-socket.on('reconnect_attempt', logEvent('reconnect_attempt'))
-socket.on('reconnecting', logEvent('reconnecting'))
-socket.on('error', logEvent('error'))
-socket.on('disconnect', logEvent('disconnect'))
-// socket.on('reconnect', logEvent('reconnect'))
+const checkSocket = () => {
+    socket.on('connect', () => {
+        isConnected = true
+        console.log('\nconnected to socket')
+    })
+    
+    
+    socket.on('reconnect', logEvent('reconnect'))
+    socket.on('reconnect_attempt', logEvent('reconnect_attempt'))
+    socket.on('reconnecting', logEvent('reconnecting'))
+    socket.on('error', logEvent('error'))
+    socket.on('disconnect', logEvent('disconnect'))
+    
+    socket.on('newMsg', (msg) => {
+        console.log('\nmessage received ' + currentTime + '\n');
+        console.log(msg)
+        isReceived = true
+    })
+    
+    setInterval(sendMessage, 60000)
+}
 
-socket.on('newMsg', (msg) => {
-    console.log('\n\n\n message received ' + currentTime + '\n\n\n');
-    console.log(msg)
-    isReceived = true
-})
+checkSocket()
 
-setInterval(sendMessage, 60000)
