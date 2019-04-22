@@ -14,10 +14,6 @@ const customerId = process.env.CUSTOMER_ID,
 let isReceived = false, isConnected = false
 let currentTime = new Date()
 let socket = ''
-// let url = process.env.API_HOST + '/socket.io/?ticket=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjdXN0b21lcklkIjoiNWNiZDM1NDcwMzIzZTYyMmNjMGU5ODI2IiwiaWF0IjoxNTU1OTA1OTE2LCJleHAiOjE1NTU5MDY1MTZ9.V0cZaLxiR-xq4QXUgea82L-QdO2dVVq5PMKR49Xmayg&channel=widget'
-
-// const socket = io.connect(apiHost, transportOptions)
-// const socket = io(url, transports)
 
 const sendMessageResponse = (error, response) => {
     console.log(error, response.statusCode, response.body)

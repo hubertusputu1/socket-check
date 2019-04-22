@@ -27,7 +27,7 @@ const sendMessage = (data, callback) => {
 
 	request.post(options, (err, res) => {
         if(err) return callback(err)
-        return callback(null, res)
+        return callback(null, res.body)
     })
 }
 
@@ -51,7 +51,7 @@ const wsTicket = (data, callback) => {
 
 	request.post(options, (err, res) => {
         if(err) return callback(err)
-        return callback(null, res)
+        return callback(null, JSON.parse(res.body))
     })
 }
 
