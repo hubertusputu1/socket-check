@@ -1,4 +1,4 @@
-'use-strict'
+'use strict'
 const Slack = require('slack-node');
 let slack = new Slack();
 slack.setWebhook(process.env.SLACK_WEBHOOK)

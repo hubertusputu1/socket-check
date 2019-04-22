@@ -3,48 +3,23 @@
 const request = require('request')
 const io = require('socket.io-client')
 const Slack = require('../utils/slack')
+const callAPI = require('../utils/callAPI')
 
 const customerId = process.env.CUSTOMER_ID, 
     conversationId = process.env.CONVERSATION_ID,
     conversationSecret = process.env.CONVERSATION_SECRET,
     merchantId = process.env.MERCHANT_ID, 
-    apiHost = process.env.API_HOST,
-    transportOptions = { 
-        transportOptions: {
-            polling: {
-                extraHeaders: {
-                    conversationId: conversationId,
-                    customerId: customerId,
-                    conversationSecret: conversationSecret,
-                    merchantId: merchantId,
-                    channel: 'widget'
-                }
-            },
-            }
-        }
+    apiHost = process.env.API_HOST
+
 let isReceived = false, isConnected = false
 let currentTime = new Date()
+let socket = ''
+// let url = process.env.API_HOST + '/socket.io/?ticket=eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJjdXN0b21lcklkIjoiNWNiZDM1NDcwMzIzZTYyMmNjMGU5ODI2IiwiaWF0IjoxNTU1OTA1OTE2LCJleHAiOjE1NTU5MDY1MTZ9.V0cZaLxiR-xq4QXUgea82L-QdO2dVVq5PMKR49Xmayg&channel=widget'
 
-const socket = io.connect(apiHost, transportOptions)
+// const socket = io.connect(apiHost, transportOptions)
+// const socket = io(url, transports)
 
-const options = {
-    url: apiHost + '/api/v1/widget/message/send',
-    headers: {
-        'Content-Type': 'application/json',
-        'x-customer-id': customerId,
-        'x-conversation-id': conversationId,
-        'x-merchant-id': merchantId,
-        'x-conversation-secret':conversationSecret
-    },
-    json: {
-        "type": "text",
-        "msgType": "text", 
-        "text": "test_socket", 
-        "payload": null 
-    }
-}
-
-const sendMessageResponse = (error, response, body) => {
+const sendMessageResponse = (error, response) => {
     console.log(error, response.statusCode, response.body)
     if(!error && response.statusCode === 200) {
         console.log('\nmessage sent ' + currentTime + '\n');
@@ -65,7 +40,7 @@ const sendMessage = () => {
     currentTime = new Date()
     console.log('\nsending message ' + currentTime + '\n');
     isReceived = false
-    request.post(options, sendMessageResponse)
+    callAPI.sendMessage({apiHost, customerId, merchantId, conversationSecret, conversationId}, sendMessageResponse)
 }
 
 let logEvent = name => (args) => {
@@ -77,7 +52,6 @@ const checkSocket = () => {
         isConnected = true
         console.log('\nconnected to socket')
     })
-    
     
     socket.on('reconnect', logEvent('reconnect'))
     socket.on('reconnect_attempt', logEvent('reconnect_attempt'))
@@ -94,5 +68,20 @@ const checkSocket = () => {
     setInterval(sendMessage, 60000)
 }
 
-checkSocket()
+const getWebsocket = (callback) => {
+    callAPI.wsTicket({apiHost, customerId, merchantId, conversationSecret, conversationId}, (err, res) => {
+        if(err) console.log('error creating websocket ticket ', err)
+        else callback(res.data.ticket)
+    })
+}
+
+const connectToSocket = ticket => {
+    socket = io(apiHost + '?ticket=' + ticket + '&channel=widget', {
+        transports: ['websocket']
+    })
+
+    checkSocket()
+}
+
+getWebsocket(connectToSocket)
 
